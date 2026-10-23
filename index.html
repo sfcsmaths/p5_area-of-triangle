@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>幾何特工隊：找出底與對應的高（探索・鞏固・挑戰）</title>
+  <style>
+    :root {
+      --bg-dark: #070d19;
+      --card-bg: #0f172a;
+      --grid-line: #1e293b;
+      --accent-cyan: #38bdf8;
+      --base-green: #22c55e;
+      --height-orange: #f97316;
+      --point-yellow: #facc15;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft JhengHei", sans-serif;
+      background: radial-gradient(circle at 50% 15%, #131c31 0%, #060b14 100%);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 8px 12px;
+      overflow-x: hidden;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 6px;
+    }
+
+    h1 {
+      font-size: 1.35rem;
+      letter-spacing: 0.5px;
+      color: #f1f5f9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .badge {
+      background: linear-gradient(135deg, #6366f1, #a855f7);
+      color: white;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: bold;
+    }
+
+    /* 主模式選單 */
+    .mode-bar {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 6px;
+      background: rgba(15, 23, 42, 0.9);
+      padding: 4px;
+      border-radius: 12px;
+      border: 1px solid #334155;
+    }
+
+    .mode-btn {
+      background: transparent;
+      color: var(--text-muted);
+      border: none;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .mode-btn.active {
+      background: #0284c7;
+      color: #fff;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
+    }
+
+    .mode-btn.challenge.active {
+      background: linear-gradient(135deg, #7c3aed, #c026d3);
+      box-shadow: 0 0 10px rgba(168, 85, 247, 0.45);
+    }
+
+    /* 子題目選單 */
+    .sub-nav {
+      display: flex;
+      gap: 5px;
+      margin-bottom: 6px;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: 1080px;
+    }
+
+    .sub-btn {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: var(--text-muted);
+      padding: 4px 10px;
+      border-radius: 14px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .sub-btn:hover {
+      background: #334155;
+      color: #fff;
+    }
+
+    .sub-btn.active {
+      background: #38bdf8;
+      border-color: #38bdf8;
+      color: #091322;
+      font-weight: 700;
+    }
+
+    /* iPad 橫向專用左右排版 (Left: Canvas, Right: Info) */
+    .workspace-layout {
+      display: flex;
+      flex-direction: row;
+      gap: 12px;
+      width: 100%;
+      max-width: 1100px;
+      align-items: stretch;
+      justify-content: center;
+    }
+
+    /* 左側畫布區塊 */
+    .canvas-panel {
+      flex: 1 1 680px;
+      background: #0b1324;
+      border: 2px solid #1e293b;
+      border-radius: 16px;
+      padding: 10px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+
+    /* 右側教學與即時回饋區塊 */
+    .sidebar-panel {
+      flex: 0 0 340px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* 任務指引 HUD */
+    .mission-hud {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #1e293b;
+      font-size: 0.84rem;
+      gap: 6px;
+    }
+
+    .hud-task {
+      color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .hud-status {
+      font-weight: bold;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      white-space: nowrap;
+    }
+
+    .hud-status.searching {
+      background: rgba(250, 204, 21, 0.15);
+      color: var(--point-yellow);
+      border: 1px solid rgba(250, 204, 21, 0.3);
+    }
+
+    .hud-status.locked {
+      background: rgba(34, 197, 94, 0.2);
+      color: #4ade80;
+      border: 1px solid rgba(34, 197, 94, 0.5);
+      box-shadow: 0 0 8px rgba(34, 197, 94, 0.3);
+    }
+
+    /* SVG 繪圖區 */
+    .svg-wrapper {
+      position: relative;
+      width: 100%;
+      height: 350px;
+      margin: 8px 0;
+      background: 
+        linear-gradient(to right, rgba(56, 189, 248, 0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(56, 189, 248, 0.04) 1px, transparent 1px),
+        #070d19;
+      background-size: 24px 24px;
+      border-radius: 10px;
+      border: 1px solid #1e293b;
+      touch-action: none;
+    }
+
+    svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    .base-slider-handle {
+      cursor: grab;
+      filter: drop-shadow(0 0 6px #facc15);
+      touch-action: none;
+    }
+
+    .base-slider-handle:active {
+      cursor: grabbing;
+    }
+
+    .height-puller-btn {
+      cursor: grab;
+      filter: drop-shadow(0 0 6px #f97316);
+      touch-action: none;
+    }
+
+    .height-puller-btn:active {
+      cursor: grabbing;
+    }
+
+    .scan-success-tag {
+      position: absolute;
+      right: 12px;
+      top: 12px;
+      color: #4ade80;
+      font-weight: 900;
+      font-family: monospace;
+      letter-spacing: 1px;
+      font-size: 0.95rem;
+      border: 2px solid #22c55e;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: rgba(15, 23, 42, 0.92);
+      box-shadow: 0 0 14px rgba(34, 197, 94, 0.45);
+      display: none;
+      animation: flash 0.8s infinite alternate;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    @keyframes flash {
+      from { opacity: 0.85; transform: scale(1); }
+      to { opacity: 1; transform: scale(1.03); }
+    }
+
+    .top-success-banner {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: rgba(15, 23, 42, 0.92);
+      border: 1.5px solid #22c55e;
+      color: #4ade80;
+      padding: 4px 12px;
+      border-radius: 16px;
+      font-size: 0.82rem;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 0 10px rgba(34, 197, 94, 0.3);
+      opacity: 0;
+      transform: translateY(-6px);
+      transition: all 0.2s ease-out;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .top-success-banner.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* 完成所有關卡的浮層結算卡片 */
+    .completion-modal {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(7, 13, 25, 0.88);
+      backdrop-filter: blur(4px);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      z-index: 50;
+      padding: 20px;
+      text-align: center;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .completion-card {
+      background: #0f172a;
+      border: 2px solid #a855f7;
+      box-shadow: 0 0 25px rgba(168, 85, 247, 0.4);
+      padding: 24px 32px;
+      border-radius: 16px;
+      max-width: 420px;
+      width: 90%;
+    }
+
+    .completion-title {
+      font-size: 1.4rem;
+      color: #f8fafc;
+      margin-bottom: 12px;
+      font-weight: 800;
+    }
+
+    .completion-stats {
+      font-size: 0.95rem;
+      color: #cbd5e1;
+      line-height: 1.8;
+      margin-bottom: 20px;
+    }
+
+    .restart-btn {
+      background: linear-gradient(135deg, #7c3aed, #c026d3);
+      color: white;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(192, 38, 211, 0.4);
+      transition: all 0.2s;
+    }
+
+    .restart-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(192, 38, 211, 0.6);
+    }
+
+    /* 控制按鈕 */
+    .control-bar {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+      justify-content: center;
+      margin-top: 2px;
+      flex-wrap: wrap;
+    }
+
+    .action-btn {
+      background: #1e293b;
+      color: white;
+      border: 1px solid #334155;
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s;
+    }
+
+    .action-btn:hover {
+      background: #334155;
+    }
+
+    .action-btn.accent {
+      background: #0284c7;
+      border-color: #38bdf8;
+    }
+
+    /* 右側卡片 */
+    .sidebar-card {
+      background: #0f172a;
+      border-radius: 12px;
+      padding: 12px;
+      border: 1px solid #1e293b;
+    }
+
+    .challenge-stats-card {
+      display: none;
+      background: rgba(168, 85, 247, 0.12);
+      border-color: rgba(168, 85, 247, 0.35);
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .challenge-stat-row {
+      display: flex;
+      justify-content: space-between;
+      font-weight: bold;
+      color: #e9d5ff;
+      font-size: 0.84rem;
+    }
+
+    .info-panel {
+      border-left: 4px solid #38bdf8;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+      transition: all 0.25s;
+    }
+
+    .info-panel.success-mode {
+      border-left-color: #22c55e;
+      background: rgba(34, 197, 94, 0.08);
+      box-shadow: 0 0 15px rgba(34, 197, 94, 0.15);
+    }
+
+    .info-title {
+      font-weight: bold;
+      color: #38bdf8;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .info-panel.success-mode .info-title {
+      color: #4ade80;
+    }
+
+    .info-desc {
+      font-size: 0.83rem;
+      color: #cbd5e1;
+      line-height: 1.45;
+    }
+
+    .legend-box {
+      margin-top: auto;
+      font-size: 0.76rem;
+      color: #94a3b8;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      padding-top: 8px;
+      border-top: 1px solid #1e293b;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .color-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* 響應式：手機直屏自動降級為上下堆疊 */
+    @media (max-width: 900px) {
+      .workspace-layout {
+        flex-direction: column;
+      }
+      .sidebar-panel {
+        flex: 1 1 auto;
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>
+      <span>⚡ 幾何特工隊：找出底與對應的高</span>
+      <span class="badge">小五數學探究</span>
+    </h1>
+  </header>
+
+  <!-- 頂部三大模式 -->
+  <div class="mode-bar">
+    <button class="mode-btn active" onclick="switchMode('explore')">🔍 階段一：自由探索</button>
+    <button class="mode-btn" onclick="switchMode('consolidate')">🔄 階段二：同圖不同底（鞏固）</button>
+    <button class="mode-btn challenge" onclick="switchMode('challenge')">🏆 階段三：挑戰大闖關 (10題)</button>
+  </div>
+
+  <!-- 子題目選單 -->
+  <div class="sub-nav" id="subNav"></div>
+
+  <!-- iPad 橫向專用左右並排佈局 -->
+  <div class="workspace-layout">
+    <!-- 左側幾何畫布 -->
+    <div class="canvas-panel">
+      <!-- 任務 HUD -->
+      <div class="mission-hud">
+        <div class="hud-task">
+          🎯 <strong>操作</strong>：① 綠底滑動<strong>黃點</strong> ➔ ② 按<strong>「➕」向上拔高</strong>！
+        </div>
+        <div class="hud-status searching" id="statusBadge">🔍 探測中...</div>
+      </div>
+
+      <!-- SVG 畫布 -->
+      <div class="svg-wrapper" id="svgContainer">
+        <!-- 頂部浮動標籤 (不遮擋圖形) -->
+        <div class="top-success-banner" id="topSuccessBanner">
+          <span>🎉 叮！成功鎖定垂直高線！</span>
+        </div>
+        <div class="scan-success-tag" id="scanTag">SCAN SUCCESS!</div>
+
+        <!-- 結算卡片 (完成 10 關時顯示，讓學生按「重新開始」反覆練習) -->
+        <div class="completion-modal" id="completionModal">
+          <div class="completion-card">
+            <div class="completion-title">🏆 闖關大獲全勝！</div>
+            <div class="completion-stats" id="completionStatsText">
+              恭喜你成功突破全部 10 道難關！<br>
+              獲得總積分：⭐ 1000 分
+            </div>
+            <button class="restart-btn" onclick="restartChallengeMode()">🔄 重新開始挑戰（反覆練習）</button>
+          </div>
+        </div>
+
+        <svg id="geoSvg" viewBox="0 0 680 350">
+          <defs>
+            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="3" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+          </defs>
+
+          <!-- 圖形填充與邊框 (初始無頂點提示) -->
+          <polygon id="shapePolygon" fill="rgba(56, 189, 248, 0.12)" stroke="#38bdf8" stroke-width="2.6" stroke-linejoin="round" />
+
+          <!-- 底的延長線 (當黃點滑出底邊或外高時顯示) -->
+          <line id="baseExtension" stroke="#64748b" stroke-width="2" stroke-dasharray="5,5" style="display:none;" />
+
+          <!-- 選定的「底」(綠色粗線) -->
+          <line id="baseLine" stroke="#22c55e" stroke-width="5" stroke-linecap="round" />
+          <text id="baseLabel" fill="#4ade80" font-size="14" font-weight="bold" text-anchor="middle">底</text>
+
+          <!-- 90度 垂直直角記號 -->
+          <path id="rightAngleMark" fill="none" stroke="#f97316" stroke-width="2.5" />
+
+          <!-- 拔出的高線 (橙色) -->
+          <line id="heightLine" stroke="#f97316" stroke-width="3" stroke-dasharray="5,4" stroke-linecap="round" />
+          <text id="heightLabel" fill="#fb923c" font-size="14" font-weight="bold" style="display:none;">高</text>
+
+          <!-- 鎖定時頂點提示 (鎖定後才點亮) -->
+          <circle id="lockedTargetPoint" r="6" fill="#f43f5e" filter="url(#glow)" style="display:none;" />
+
+          <!-- 底上的滑動黃點 -->
+          <circle id="sliderHandle" class="base-slider-handle" r="12" fill="#facc15" stroke="#ffffff" stroke-width="3" />
+
+          <!-- 拔高「➕」把手 -->
+          <g id="pullerGroup" class="height-puller-btn">
+            <circle id="pullerHandle" r="13" fill="#f97316" stroke="#ffffff" stroke-width="2.5" />
+            <text id="pullerText" x="0" y="5" fill="#ffffff" font-size="16" font-weight="bold" text-anchor="middle" pointer-events="none">+</text>
+          </g>
+        </svg>
+      </div>
+
+      <!-- 操作按鈕 -->
+      <div class="control-bar">
+        <button class="action-btn" onclick="resetControls()">🔄 重設位置</button>
+        <button class="action-btn accent" id="nextChallengeBtn" style="display:none;" onclick="nextChallenge()">進入下一關 ➔</button>
+        <button class="action-btn" onclick="toggleSound()">🔊 音效：<span id="soundStatus">開</span></button>
+      </div>
+    </div>
+
+    <!-- 右側教學指南與即時回饋面板 -->
+    <div class="sidebar-panel">
+      <!-- 闖關 HUD 卡片 -->
+      <div class="sidebar-card challenge-stats-card" id="challengeStats">
+        <div class="challenge-stat-row">
+          <span id="challengeProgress">關卡：1 / 10</span>
+          <span id="challengeTimer">⏱️ 用時：0 秒</span>
+        </div>
+        <div class="challenge-stat-row">
+          <span id="challengeScore">得分：⭐ 0</span>
+        </div>
+      </div>
+
+      <!-- 教學觀察與反饋面板 -->
+      <div class="sidebar-card info-panel" id="infoPanel">
+        <div class="info-title">
+          <span id="infoTitleIcon">💡</span>
+          <span id="infoTitlePrefix">教學重點觀察</span>
+          <span id="shapeDetailTitle" style="color:#f8fafc; font-size:0.86rem;"></span>
+        </div>
+        <div class="info-desc" id="conceptDesc">
+          正在載入中...
+        </div>
+
+        <div class="legend-box">
+          <div class="legend-item"><span class="color-dot" style="background:var(--base-green);"></span>綠色實線：選定的底</div>
+          <div class="legend-item"><span class="color-dot" style="background:var(--point-yellow);"></span>黃色圓點：在底上滑動找出發垂足</div>
+          <div class="legend-item"><span class="color-dot" style="background:var(--height-orange);"></span>橙色加號：按住「+」垂直拔出高線</div>
+          <div class="legend-item"><span class="color-dot" style="background:#64748b;"></span>灰色虛線：延長線（高在外部時）</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ========================================================
+       幾何數據庫定義（包含完整 10 道挑戰關卡）
+    ======================================================== */
+    const DATABASE = {
+      explore: [
+        {
+          id: 'tri_acute',
+          type: 'triangle',
+          name: '銳角三角形 (內高)',
+          desc: '頂點在底的範圍內。橙色高線從頂點垂直畫到底，整條高完全在三角形內部。',
+          vertices: [{x: 180, y: 280}, {x: 520, y: 280}, {x: 320, y: 100}],
+          baseIndex: [0, 1],
+          extMin: 0, extMax: 1
+        },
+        {
+          id: 'tri_right',
+          type: 'triangle',
+          name: '直角三角形 (直角邊為高)',
+          desc: '直角三角形中，兩條直角邊互相垂直。當一條是底時，另一條直角邊正好就是對應的高！',
+          vertices: [{x: 210, y: 280}, {x: 500, y: 280}, {x: 210, y: 100}],
+          baseIndex: [0, 1],
+          extMin: 0, extMax: 1
+        },
+        {
+          id: 'tri_obtuse',
+          type: 'triangle',
+          name: '鈍角三角形 (外高・延長底)',
+          desc: '頂點偏離底邊時，需「把底延長（虛線）」。橙色高線與底的延長線保持 90° 垂直！',
+          vertices: [{x: 320, y: 280}, {x: 550, y: 280}, {x: 160, y: 110}],
+          baseIndex: [0, 1],
+          extMin: -0.9, extMax: 1.1
+        },
+        {
+          id: 'para_std',
+          type: 'parallelogram',
+          name: '平行四邊形 (標準內高)',
+          desc: '平行四邊形兩組對邊平行。底與對邊之間的垂直距離處處相等，在底上任何位置拉出垂直線都是它的高！',
+          vertices: [{x: 160, y: 270}, {x: 440, y: 270}, {x: 530, y: 110}, {x: 250, y: 110}],
+          baseIndex: [0, 1],
+          extMin: 0, extMax: 1
+        },
+        {
+          id: 'para_lean',
+          type: 'parallelogram',
+          name: '極度傾斜平行四邊形 (外高)',
+          desc: '當平行四邊形傾斜較大時，可把底或對邊延長。沿著延長線同樣能拉出垂直的高！',
+          vertices: [{x: 320, y: 270}, {x: 530, y: 270}, {x: 370, y: 110}, {x: 160, y: 110}],
+          baseIndex: [0, 1],
+          extMin: -0.95, extMax: 1.15
+        },
+        {
+          id: 'trap_std',
+          type: 'trapezoid',
+          name: '普通梯形 (內高)',
+          desc: '梯形有一組對邊互相平行（上底與下底）。高是上底與下底之間的垂直距離，兩底之間皆可作高！',
+          vertices: [{x: 140, y: 280}, {x: 520, y: 280}, {x: 420, y: 110}, {x: 250, y: 110}],
+          baseIndex: [0, 1],
+          extMin: 0, extMax: 1
+        },
+        {
+          id: 'trap_right',
+          type: 'trapezoid',
+          name: '直角梯形 (垂直腰即是高)',
+          desc: '直角梯形其中一條腰與底垂直，這條腰的長度就是梯形的高。',
+          vertices: [{x: 220, y: 280}, {x: 500, y: 280}, {x: 400, y: 110}, {x: 220, y: 110}],
+          baseIndex: [0, 1],
+          extMin: 0, extMax: 1
+        }
+      ],
+
+      // 階段二：同圖不同底（重點鞏固）
+      consolidate: [
+        {
+          id: 'tri_same_1',
+          type: 'triangle',
+          name: '三角形：以水平邊 AB 為底',
+          desc: '同一三角形中，以水平邊 AB 為底。高由上方頂點 C 垂直向下作出。',
+          vertices: [{x: 200, y: 280}, {x: 500, y: 280}, {x: 280, y: 110}],
+          baseIndex: [0, 1],
+          extMin: 0, extMax: 1
+        },
+        {
+          id: 'tri_same_2',
+          type: 'triangle',
+          name: '三角形：以斜邊 AC 為底',
+          desc: '【轉變視角！】同一個三角形，現在以斜邊 AC 為底。高必須與 AC 邊保持 90° 直角，指向頂點 B！',
+          vertices: [{x: 200, y: 280}, {x: 500, y: 280}, {x: 280, y: 110}],
+          baseIndex: [0, 2],
+          extMin: -0.1, extMax: 1.1
+        },
+        {
+          id: 'tri_same_3',
+          type: 'triangle',
+          name: '三角形：以斜邊 BC 為底',
+          desc: '以第三條邊 BC 為底。高由頂點 A 向 BC 作垂直線。每條邊都有其對應的高！',
+          vertices: [{x: 200, y: 280}, {x: 500, y: 280}, {x: 280, y: 110}],
+          baseIndex: [1, 2],
+          extMin: -0.1, extMax: 1.1
+        },
+        {
+          id: 'para_same_1',
+          type: 'parallelogram',
+          name: '平行四邊形：以下邊為底',
+          desc: '同一平行四邊形，以下方長邊為底。高是上下兩條水平平行線之間的垂直距離。',
+          vertices: [{x: 180, y: 270}, {x: 460, y: 270}, {x: 520, y: 120}, {x: 240, y: 120}],
+          baseIndex: [0, 1],
+          extMin: 0, extMax: 1
+        },
+        {
+          id: 'para_same_2',
+          type: 'parallelogram',
+          name: '平行四邊形：以側邊為底',
+          desc: '【重點突破】同一平行四邊形，改以側斜邊為底！此時高是左右兩條側邊之間的垂直距離，高呈傾斜方向！',
+          vertices: [{x: 180, y: 270}, {x: 460, y: 270}, {x: 520, y: 120}, {x: 240, y: 120}],
+          baseIndex: [0, 3],
+          extMin: -0.1, extMax: 1.1
+        }
+      ],
+
+      // 階段三：挑戰關卡（完整 10 題）
+      challenge: [
+        {
+          id: 'ch_1',
+          type: 'triangle',
+          name: '關卡 1：倒轉三角形 (底在上方)',
+          desc: '底在上方！請觀察頂點在下方時，如何由上底垂直向下拔出高。',
+          vertices: [{x: 200, y: 100}, {x: 480, y: 100}, {x: 340, y: 280}],
+          baseIndex: [0, 1],
+          extMin: 0, extMax: 1
+        },
+        {
+          id: 'ch_2',
+          type: 'parallelogram',
+          name: '關卡 2：向左傾斜平行四邊形 (外高)',
+          desc: '頂點偏在底邊的左側外圍，請滑到左邊延長線拔出垂直的高！',
+          vertices: [{x: 340, y: 270}, {x: 530, y: 270}, {x: 370, y: 110}, {x: 180, y: 110}],
+          baseIndex: [0, 1],
+          extMin: -1.0, extMax: 1.0
+        },
+        {
+          id: 'ch_3',
+          type: 'trapezoid',
+          name: '關卡 3：豎直的梯形 (直立邊為底)',
+          desc: '轉了 90 度的梯形！垂直的左邊是底，拔出的高變成了水平橫向！',
+          vertices: [{x: 230, y: 90}, {x: 230, y: 290}, {x: 450, y: 240}, {x: 450, y: 140}],
+          baseIndex: [0, 1],
+          extMin: 0, extMax: 1
+        },
+        {
+          id: 'ch_4',
+          type: 'triangle',
+          name: '關卡 4：平扁鈍角三角形 (右側外高)',
+          desc: '頂點落在右側外部，向右滑動至延長線，拔出高線與頂點相會！',
+          vertices: [{x: 180, y: 270}, {x: 350, y: 270}, {x: 530, y: 120}],
+          baseIndex: [0, 1],
+          extMin: 0, extMax: 2.1
+        },
+        {
+          id: 'ch_5',
+          type: 'parallelogram',
+          name: '關卡 5：斜放的平行四邊形',
+          desc: '底本身就是一條斜線！滑動並拔出始終保持 90 度的橙色高！',
+          vertices: [{x: 170, y: 220}, {x: 390, y: 290}, {x: 480, y: 160}, {x: 260, y: 90}],
+          baseIndex: [0, 1],
+          extMin: -0.1, extMax: 1.1
+        },
+        {
+          id: 'ch_6',
+          type: 'trapezoid',
+          name: '關卡 6：偏斜梯形外高',
+          desc: '上底偏在下底外側！沿著下底延長線滑動並拔高！',
+          vertices: [{x: 310, y: 280}, {x: 540, y: 280}, {x: 280, y: 110}, {x: 160, y: 110}],
+          baseIndex: [0, 1],
+          extMin: -0.85, extMax: 1.1
+        },
+        {
+          id: 'ch_7',
+          type: 'trapezoid',
+          name: '關卡 7：雙直角梯形 (垂直腰為底)',
+          desc: '以垂直的腰為底！看看上底與下底兩條水平線，高如何精準橫向跨越！',
+          vertices: [{x: 220, y: 100}, {x: 220, y: 280}, {x: 480, y: 280}, {x: 380, y: 100}],
+          baseIndex: [0, 1],
+          extMin: 0, extMax: 1
+        },
+        {
+          id: 'ch_8',
+          type: 'triangle',
+          name: '關卡 8：超長斜底鈍角三角形',
+          desc: '傾斜的長邊為底！頂點在遠處，請精準尋找 90 度垂直方向並完全拉至頂點！',
+          vertices: [{x: 160, y: 260}, {x: 480, y: 200}, {x: 280, y: 90}],
+          baseIndex: [0, 1],
+          extMin: -0.1, extMax: 1.1
+        },
+        {
+          id: 'ch_9',
+          type: 'parallelogram',
+          name: '關卡 9：懸空長平行四邊形 (側斜底)',
+          desc: '改以左側短斜邊為底！請滑動黃點，向對邊拉出貫穿圖形的高！',
+          vertices: [{x: 180, y: 260}, {x: 480, y: 230}, {x: 510, y: 120}, {x: 210, y: 150}],
+          baseIndex: [0, 3],
+          extMin: -0.1, extMax: 1.1
+        },
+        {
+          id: 'ch_10',
+          type: 'trapezoid',
+          name: '關卡 10：極限外高倒梯形',
+          desc: '【終極考驗】梯形倒置且極度向右傾斜！延長上方底邊，找出下底對應的高！',
+          vertices: [{x: 190, y: 100}, {x: 380, y: 100}, {x: 520, y: 280}, {x: 420, y: 280}],
+          baseIndex: [0, 1],
+          extMin: 0, extMax: 2.1
+        }
+      ]
+    };
+
+    /* ========================================================
+       狀態變數
+    ======================================================== */
+    let currentMode = 'explore';
+    let currentSubIndex = 0;
+
+    let currentT = 0.5;
+    let currentHeightLen = 30;
+    let activeDrag = null;
+    let hasLocked = false;
+    let soundEnabled = true;
+    let audioCtx = null;
+
+    let challengeScoreVal = 0;
+    let challengeTimerInterval = null;
+    let challengeStartTime = 0;
+    let passedChallenges = new Set();
+
+    // DOM 元素
+    const subNav = document.getElementById('subNav');
+    const shapePolygon = document.getElementById('shapePolygon');
+    const baseLine = document.getElementById('baseLine');
+    const baseLabel = document.getElementById('baseLabel');
+    const baseExtension = document.getElementById('baseExtension');
+    const heightLine = document.getElementById('heightLine');
+    const heightLabel = document.getElementById('heightLabel');
+    const rightAngleMark = document.getElementById('rightAngleMark');
+    const sliderHandle = document.getElementById('sliderHandle');
+    const pullerGroup = document.getElementById('pullerGroup');
+    const lockedTargetPoint = document.getElementById('lockedTargetPoint');
+    const statusBadge = document.getElementById('statusBadge');
+    const topSuccessBanner = document.getElementById('topSuccessBanner');
+    const scanTag = document.getElementById('scanTag');
+    const completionModal = document.getElementById('completionModal');
+    const completionStatsText = document.getElementById('completionStatsText');
+    const infoPanel = document.getElementById('infoPanel');
+    const infoTitleIcon = document.getElementById('infoTitleIcon');
+    const infoTitlePrefix = document.getElementById('infoTitlePrefix');
+    const shapeDetailTitle = document.getElementById('shapeDetailTitle');
+    const conceptDesc = document.getElementById('conceptDesc');
+    const svgContainer = document.getElementById('svgContainer');
+    const challengeStats = document.getElementById('challengeStats');
+    const challengeProgress = document.getElementById('challengeProgress');
+    const challengeScore = document.getElementById('challengeScore');
+    const challengeTimer = document.getElementById('challengeTimer');
+    const nextChallengeBtn = document.getElementById('nextChallengeBtn');
+
+    /* ========================================================
+       音效系統 (叮！)
+    ======================================================== */
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    }
+
+    function playDingSound() {
+      if (!soundEnabled) return;
+      initAudio();
+      try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1320, audioCtx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.6);
+      } catch (e) {}
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      document.getElementById('soundStatus').innerText = soundEnabled ? '開' : '關';
+    }
+
+    /* ========================================================
+       幾何高求解器
+    ======================================================== */
+    function solveShapeGeometry(data) {
+      const p1 = data.vertices[data.baseIndex[0]];
+      const p2 = data.vertices[data.baseIndex[1]];
+      const dx = p2.x - p1.x;
+      const dy = p2.y - p1.y;
+      const baseLen = Math.hypot(dx, dy);
+      const ux = dx / baseLen;
+      const uy = dy / baseLen;
+
+      let nx = -uy;
+      let ny = ux;
+
+      const oppVertices = [];
+      let maxDist = -1;
+
+      data.vertices.forEach((v, idx) => {
+        if (idx === data.baseIndex[0] || idx === data.baseIndex[1]) return;
+        const vx = v.x - p1.x;
+        const vy = v.y - p1.y;
+        const t = (vx * dx + vy * dy) / (baseLen * baseLen);
+        const dist = Math.abs(vx * nx + vy * ny);
+        oppVertices.push({ pt: v, t: t, dist: dist });
+        if (dist > maxDist) maxDist = dist;
+      });
+
+      const firstOpp = oppVertices[0].pt;
+      if (nx * (firstOpp.x - p1.x) + ny * (firstOpp.y - p1.y) < 0) {
+        nx = -nx;
+        ny = -ny;
+      }
+
+      const oppTList = oppVertices.map(item => item.t);
+      const minOppT = Math.min(...oppTList);
+      const maxOppT = Math.max(...oppTList);
+
+      return {
+        p1, p2, dx, dy, baseLen, ux, uy, nx, ny,
+        targetHeight: maxDist,
+        oppVertices,
+        minOppT,
+        maxOppT,
+        isParallelShape: data.type === 'parallelogram' || data.type === 'trapezoid'
+      };
+    }
+
+    /* ========================================================
+       視圖渲染與高精度判定 (嚴格收緊容差)
+    ======================================================== */
+    function updateScene() {
+      const data = DATABASE[currentMode][currentSubIndex];
+      const geom = solveShapeGeometry(data);
+
+      // 1. 多邊形
+      const ptsStr = data.vertices.map(v => `${v.x},${v.y}`).join(' ');
+      shapePolygon.setAttribute('points', ptsStr);
+
+      // 2. 底線
+      baseLine.setAttribute('x1', geom.p1.x);
+      baseLine.setAttribute('y1', geom.p1.y);
+      baseLine.setAttribute('x2', geom.p2.x);
+      baseLine.setAttribute('y2', geom.p2.y);
+
+      const midX = (geom.p1.x + geom.p2.x) / 2;
+      const midY = (geom.p1.y + geom.p2.y) / 2;
+      baseLabel.setAttribute('x', midX - geom.ny * 20);
+      baseLabel.setAttribute('y', midY + geom.nx * 20);
+
+      currentT = Math.max(data.extMin, Math.min(data.extMax, currentT));
+
+      const hx = geom.p1.x + currentT * geom.dx;
+      const hy = geom.p1.y + currentT * geom.dy;
+      sliderHandle.setAttribute('cx', hx);
+      sliderHandle.setAttribute('cy', hy);
+
+      if (currentT < -0.01) {
+        baseExtension.style.display = 'block';
+        baseExtension.setAttribute('x1', geom.p1.x);
+        baseExtension.setAttribute('y1', geom.p1.y);
+        baseExtension.setAttribute('x2', hx - geom.ux * 10);
+        baseExtension.setAttribute('y2', hy - geom.uy * 10);
+      } else if (currentT > 1.01) {
+        baseExtension.style.display = 'block';
+        baseExtension.setAttribute('x1', geom.p2.x);
+        baseExtension.setAttribute('y1', geom.p2.y);
+        baseExtension.setAttribute('x2', hx + geom.ux * 10);
+        baseExtension.setAttribute('y2', hy + geom.uy * 10);
+      } else {
+        baseExtension.style.display = 'none';
+      }
+
+      currentHeightLen = Math.max(10, Math.min(geom.targetHeight + 60, currentHeightLen));
+      const topX = hx + geom.nx * currentHeightLen;
+      const topY = hy + geom.ny * currentHeightLen;
+
+      heightLine.setAttribute('x1', hx);
+      heightLine.setAttribute('y1', hy);
+      heightLine.setAttribute('x2', topX);
+      heightLine.setAttribute('y2', topY);
+
+      pullerGroup.setAttribute('transform', `translate(${topX}, ${topY})`);
+
+      // 直角記號
+      const sq = 11;
+      const s1x = hx + geom.nx * sq;
+      const s1y = hy + geom.ny * sq;
+      const s2x = s1x + geom.ux * sq;
+      const s2y = s1y + geom.uy * sq;
+      const s3x = hx + geom.ux * sq;
+      const s3y = hy + geom.uy * sq;
+      rightAngleMark.setAttribute('d', `M ${s1x} ${s1y} L ${s2x} ${s2y} L ${s3x} ${s3y}`);
+
+      // 嚴格判定：高差必須 <= 5px，必須真切觸碰頂點或對邊！
+      let isAligned = false;
+      let matchedVertex = null;
+      const hDiff = Math.abs(currentHeightLen - geom.targetHeight);
+
+      if (geom.isParallelShape) {
+        if (hDiff <= 5) {
+          for (const item of geom.oppVertices) {
+            if (Math.abs(currentT - item.t) < 0.04) {
+              matchedVertex = item.pt;
+              break;
+            }
+          }
+          const inBase = (currentT >= -0.04 && currentT <= 1.04);
+          const inOpp = (currentT >= geom.minOppT - 0.04 && currentT <= geom.maxOppT + 0.04);
+          if ((inBase && inOpp) || matchedVertex !== null) {
+            isAligned = true;
+          }
+        }
+      } else {
+        // 三角形：必須嚴格對齊頂點垂足 (tDiff < 0.035) 且高度嚴格到位 (hDiff <= 5)
+        const targetVertex = geom.oppVertices[0];
+        const tDiff = Math.abs(currentT - targetVertex.t);
+        if (tDiff <= 0.035 && hDiff <= 5) {
+          isAligned = true;
+          matchedVertex = targetVertex.pt;
+        }
+      }
+
+      // 反饋邏輯
+      if (isAligned) {
+        if (!hasLocked) {
+          playDingSound();
+          hasLocked = true;
+          if (currentMode === 'challenge' && !passedChallenges.has(currentSubIndex)) {
+            passedChallenges.add(currentSubIndex);
+            challengeScoreVal += 100;
+            updateChallengeHUD();
+          }
+        }
+
+        statusBadge.className = 'hud-status locked';
+        statusBadge.innerHTML = '🎯 完美垂直鎖定！高線精準對應！';
+        heightLine.setAttribute('stroke-dasharray', 'none');
+        heightLine.setAttribute('stroke', '#ff7700');
+        heightLine.setAttribute('stroke-width', '4');
+        heightLabel.style.display = 'block';
+        heightLabel.setAttribute('x', (hx + topX) / 2 + 14);
+        heightLabel.setAttribute('y', (hy + topY) / 2);
+
+        if (matchedVertex) {
+          lockedTargetPoint.style.display = 'block';
+          lockedTargetPoint.setAttribute('cx', matchedVertex.x);
+          lockedTargetPoint.setAttribute('cy', matchedVertex.y);
+        } else {
+          lockedTargetPoint.style.display = 'none';
+        }
+
+        scanTag.style.display = 'block';
+        topSuccessBanner.classList.add('show');
+
+        infoPanel.classList.add('success-mode');
+        infoTitleIcon.innerText = '🎉';
+        infoTitlePrefix.innerText = '叮！成功鎖定！';
+
+        let successFeedbackText = '';
+        if (geom.isParallelShape) {
+          if (matchedVertex) {
+            successFeedbackText = '太棒了！橙線與綠線互相垂直（90°），並精準對應到平行邊頂點！';
+          } else {
+            successFeedbackText = '太棒了！平行線之間的垂直距離處處相等，你成功找出了一條標準的內高！';
+          }
+        } else {
+          successFeedbackText = (currentT < 0 || currentT > 1)
+            ? '太厲害了！這是三角形的「外部高」，將底延長後依然與高互相垂直（90°）！'
+            : '太棒了！橙線（高）與綠線（底）互相垂直，並精準連到對應頂點！';
+        }
+
+        if (currentMode === 'consolidate') {
+          successFeedbackText += ' 【想一想】：換另一條邊做底，高是否也跟著改變了長度與方向？';
+        }
+        conceptDesc.innerText = successFeedbackText;
+
+        if (currentMode === 'challenge') {
+          nextChallengeBtn.style.display = 'inline-flex';
+        }
+      } else {
+        hasLocked = false;
+        statusBadge.className = 'hud-status searching';
+        statusBadge.innerHTML = '🔍 請滑動黃點並拉伸「+」號，尋找高...';
+        heightLine.setAttribute('stroke-dasharray', '5,4');
+        heightLine.setAttribute('stroke', '#f97316');
+        heightLine.setAttribute('stroke-width', '3');
+        heightLabel.style.display = 'none';
+        lockedTargetPoint.style.display = 'none';
+        scanTag.style.display = 'none';
+        topSuccessBanner.classList.remove('show');
+
+        infoPanel.classList.remove('success-mode');
+        infoTitleIcon.innerText = '💡';
+        infoTitlePrefix.innerText = '教學重點觀察';
+        conceptDesc.innerText = data.desc;
+      }
+    }
+
+    /* ========================================================
+       雙把手拖曳與微磁吸
+    ======================================================== */
+    function getSvgPos(e) {
+      const rect = svgContainer.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const scaleX = 680 / rect.width;
+      const scaleY = 350 / rect.height;
+      return {
+        x: (clientX - rect.left) * scaleX,
+        y: (clientY - rect.top) * scaleY
+      };
+    }
+
+    sliderHandle.addEventListener('mousedown', (e) => {
+      e.stopPropagation();
+      initAudio();
+      activeDrag = 'slider';
+    });
+
+    sliderHandle.addEventListener('touchstart', (e) => {
+      e.stopPropagation();
+      initAudio();
+      activeDrag = 'slider';
+    }, { passive: false });
+
+    pullerGroup.addEventListener('mousedown', (e) => {
+      e.stopPropagation();
+      initAudio();
+      activeDrag = 'puller';
+    });
+
+    pullerGroup.addEventListener('touchstart', (e) => {
+      e.stopPropagation();
+      initAudio();
+      activeDrag = 'puller';
+    }, { passive: false });
+
+    function handlePointerMove(e) {
+      if (!activeDrag) return;
+      if (e.cancelable) e.preventDefault();
+
+      const pos = getSvgPos(e);
+      const data = DATABASE[currentMode][currentSubIndex];
+      const geom = solveShapeGeometry(data);
+
+      if (activeDrag === 'slider') {
+        const dot = (pos.x - geom.p1.x) * geom.dx + (pos.y - geom.p1.y) * geom.dy;
+        let t = dot / (geom.baseLen * geom.baseLen);
+
+        // 磁吸到頂點垂足
+        for (const item of geom.oppVertices) {
+          if (Math.abs(t - item.t) < 0.02) {
+            t = item.t;
+            break;
+          }
+        }
+        currentT = t;
+
+      } else if (activeDrag === 'puller') {
+        const hx = geom.p1.x + currentT * geom.dx;
+        const hy = geom.p1.y + currentT * geom.dy;
+        const pullDot = (pos.x - hx) * geom.nx + (pos.y - hy) * geom.ny;
+        let h = Math.max(10, pullDot);
+
+        // 僅在極其接近 (4px 內) 才輕微磁吸，防止未達高點就誤吸
+        if (Math.abs(h - geom.targetHeight) < 4) {
+          h = geom.targetHeight;
+        }
+        currentHeightLen = h;
+      }
+
+      updateScene();
+    }
+
+    function handlePointerUp() {
+      activeDrag = null;
+    }
+
+    window.addEventListener('mousemove', handlePointerMove);
+    window.addEventListener('mouseup', handlePointerUp);
+    window.addEventListener('touchmove', handlePointerMove, { passive: false });
+    window.addEventListener('touchend', handlePointerUp);
+
+    /* ========================================================
+       模式管理
+    ======================================================== */
+    function switchMode(mode) {
+      currentMode = mode;
+      currentSubIndex = 0;
+      completionModal.style.display = 'none';
+
+      document.querySelectorAll('.mode-bar .mode-btn').forEach((btn, idx) => {
+        btn.classList.toggle('active', 
+          (mode === 'explore' && idx === 0) ||
+          (mode === 'consolidate' && idx === 1) ||
+          (mode === 'challenge' && idx === 2)
+        );
+      });
+
+      if (mode === 'challenge') {
+        challengeStats.style.display = 'flex';
+        startChallengeMode();
+      } else {
+        challengeStats.style.display = 'none';
+        clearInterval(challengeTimerInterval);
+        nextChallengeBtn.style.display = 'none';
+      }
+
+      renderSubNav();
+      loadShape();
+    }
+
+    function renderSubNav() {
+      const list = DATABASE[currentMode];
+      subNav.innerHTML = '';
+      list.forEach((item, index) => {
+        const btn = document.createElement('button');
+        btn.className = `sub-btn ${index === currentSubIndex ? 'active' : ''}`;
+        btn.innerText = item.name;
+        btn.onclick = () => {
+          currentSubIndex = index;
+          completionModal.style.display = 'none';
+          renderSubNav();
+          loadShape();
+          if (currentMode === 'challenge') updateChallengeHUD();
+        };
+        subNav.appendChild(btn);
+      });
+    }
+
+    function startChallengeMode() {
+      challengeScoreVal = 0;
+      passedChallenges.clear();
+      challengeStartTime = Date.now();
+      updateChallengeHUD();
+      clearInterval(challengeTimerInterval);
+      challengeTimerInterval = setInterval(() => {
+        const sec = Math.floor((Date.now() - challengeStartTime) / 1000);
+        challengeTimer.innerText = `⏱️ 用時：${sec} 秒`;
+      }, 1000);
+    }
+
+    function restartChallengeMode() {
+      completionModal.style.display = 'none';
+      currentSubIndex = 0;
+      startChallengeMode();
+      renderSubNav();
+      loadShape();
+    }
+
+    function updateChallengeHUD() {
+      challengeProgress.innerText = `關卡：${currentSubIndex + 1} / ${DATABASE.challenge.length}`;
+      challengeScore.innerText = `得分：⭐ ${challengeScoreVal}`;
+    }
+
+    function loadShape() {
+      const data = DATABASE[currentMode][currentSubIndex];
+      shapeDetailTitle.innerText = `【${data.name}】`;
+      conceptDesc.innerText = data.desc;
+
+      currentT = 0.2;
+      currentHeightLen = 30;
+
+      hasLocked = false;
+      topSuccessBanner.classList.remove('show');
+      scanTag.style.display = 'none';
+      nextChallengeBtn.style.display = 'none';
+
+      updateScene();
+    }
+
+    function resetControls() {
+      currentT = 0.2;
+      currentHeightLen = 30;
+      hasLocked = false;
+      updateScene();
+    }
+
+    function nextChallenge() {
+      if (currentSubIndex < DATABASE.challenge.length - 1) {
+        currentSubIndex++;
+        renderSubNav();
+        loadShape();
+        updateChallengeHUD();
+      } else {
+        // 完成第 10 關：顯示自訂結算浮層與「重新開始挑戰」按鈕
+        clearInterval(challengeTimerInterval);
+        const totalSec = Math.floor((Date.now() - challengeStartTime) / 1000);
+        completionStatsText.innerHTML = `
+          恭喜你成功突破全部 10 道難關！<br>
+          總得分：<strong style="color:#facc15; font-size:1.15rem;">⭐ ${challengeScoreVal} 分</strong><br>
+          總用時：<strong style="color:#38bdf8;">⏱️ ${totalSec} 秒</strong>
+        `;
+        completionModal.style.display = 'flex';
+      }
+    }
+
+    renderSubNav();
+    loadShape();
+  </script>
+</body>
+</html>
+
+
