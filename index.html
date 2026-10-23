@@ -114,6 +114,9 @@
       font-size: 0.8rem;
       cursor: pointer;
       transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
 
     .sub-btn:hover {
@@ -128,7 +131,18 @@
       font-weight: 700;
     }
 
-    /* iPad 橫向專用左右排版 (Left: Canvas, Right: Info) */
+    .sub-btn.passed {
+      border-color: #22c55e;
+      color: #4ade80;
+    }
+
+    .sub-btn.active.passed {
+      background: #22c55e;
+      border-color: #22c55e;
+      color: #052e16;
+    }
+
+    /* iPad 橫向專用左右排版 */
     .workspace-layout {
       display: flex;
       flex-direction: row;
@@ -302,8 +316,8 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(7, 13, 25, 0.88);
-      backdrop-filter: blur(4px);
+      background: rgba(7, 13, 25, 0.9);
+      backdrop-filter: blur(5px);
       display: none;
       flex-direction: column;
       align-items: center;
@@ -324,33 +338,40 @@
       background: #0f172a;
       border: 2px solid #a855f7;
       box-shadow: 0 0 25px rgba(168, 85, 247, 0.4);
-      padding: 24px 32px;
+      padding: 24px 30px;
       border-radius: 16px;
-      max-width: 420px;
-      width: 90%;
+      max-width: 440px;
+      width: 92%;
     }
 
     .completion-title {
-      font-size: 1.4rem;
+      font-size: 1.35rem;
       color: #f8fafc;
       margin-bottom: 12px;
       font-weight: 800;
     }
 
     .completion-stats {
-      font-size: 0.95rem;
+      font-size: 0.92rem;
       color: #cbd5e1;
       line-height: 1.8;
       margin-bottom: 20px;
+    }
+
+    .btn-group-modal {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
     }
 
     .restart-btn {
       background: linear-gradient(135deg, #7c3aed, #c026d3);
       color: white;
       border: none;
-      padding: 10px 24px;
+      padding: 10px 20px;
       border-radius: 8px;
-      font-size: 1rem;
+      font-size: 0.95rem;
       font-weight: bold;
       cursor: pointer;
       box-shadow: 0 4px 15px rgba(192, 38, 211, 0.4);
@@ -360,6 +381,22 @@
     .restart-btn:hover {
       transform: translateY(-2px);
       box-shadow: 0 6px 20px rgba(192, 38, 211, 0.6);
+    }
+
+    .resume-btn {
+      background: #1e293b;
+      color: #38bdf8;
+      border: 1px solid #0284c7;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .resume-btn:hover {
+      background: #334155;
     }
 
     /* 控制按鈕 */
@@ -478,7 +515,6 @@
       flex-shrink: 0;
     }
 
-    /* 響應式：手機直屏自動降級為上下堆疊 */
     @media (max-width: 900px) {
       .workspace-layout {
         flex-direction: column;
@@ -529,15 +565,17 @@
         </div>
         <div class="scan-success-tag" id="scanTag">SCAN SUCCESS!</div>
 
-        <!-- 結算卡片 (完成 10 關時顯示，讓學生按「重新開始」反覆練習) -->
+        <!-- 結算卡片 -->
         <div class="completion-modal" id="completionModal">
           <div class="completion-card">
-            <div class="completion-title">🏆 闖關大獲全勝！</div>
+            <div class="completion-title" id="completionTitle">🏆 闖關大獲全勝！</div>
             <div class="completion-stats" id="completionStatsText">
-              恭喜你成功突破全部 10 道難關！<br>
-              獲得總積分：⭐ 1000 分
+              恭喜你成功突破全部難關！
             </div>
-            <button class="restart-btn" onclick="restartChallengeMode()">🔄 重新開始挑戰（反覆練習）</button>
+            <div class="btn-group-modal">
+              <button class="resume-btn" id="resumeUnfinishedBtn" style="display:none;" onclick="resumeNextUnfinished()">🎯 繼續完成未解題目</button>
+              <button class="restart-btn" onclick="restartChallengeMode()">🔄 重新開始挑戰（反覆練習）</button>
+            </div>
           </div>
         </div>
 
@@ -549,10 +587,10 @@
             </filter>
           </defs>
 
-          <!-- 圖形填充與邊框 (初始無頂點提示) -->
+          <!-- 圖形填充與邊框 -->
           <polygon id="shapePolygon" fill="rgba(56, 189, 248, 0.12)" stroke="#38bdf8" stroke-width="2.6" stroke-linejoin="round" />
 
-          <!-- 底的延長線 (當黃點滑出底邊或外高時顯示) -->
+          <!-- 底的延長線 -->
           <line id="baseExtension" stroke="#64748b" stroke-width="2" stroke-dasharray="5,5" style="display:none;" />
 
           <!-- 選定的「底」(綠色粗線) -->
@@ -566,7 +604,7 @@
           <line id="heightLine" stroke="#f97316" stroke-width="3" stroke-dasharray="5,4" stroke-linecap="round" />
           <text id="heightLabel" fill="#fb923c" font-size="14" font-weight="bold" style="display:none;">高</text>
 
-          <!-- 鎖定時頂點提示 (鎖定後才點亮) -->
+          <!-- 鎖定時頂點提示 -->
           <circle id="lockedTargetPoint" r="6" fill="#f43f5e" filter="url(#glow)" style="display:none;" />
 
           <!-- 底上的滑動黃點 -->
@@ -583,7 +621,7 @@
       <!-- 操作按鈕 -->
       <div class="control-bar">
         <button class="action-btn" onclick="resetControls()">🔄 重設位置</button>
-        <button class="action-btn accent" id="nextChallengeBtn" style="display:none;" onclick="nextChallenge()">進入下一關 ➔</button>
+        <button class="action-btn accent" id="nextChallengeBtn" style="display:none;" onclick="nextChallenge()">進入下一題 ➔</button>
         <button class="action-btn" onclick="toggleSound()">🔊 音效：<span id="soundStatus">開</span></button>
       </div>
     </div>
@@ -593,10 +631,11 @@
       <!-- 闖關 HUD 卡片 -->
       <div class="sidebar-card challenge-stats-card" id="challengeStats">
         <div class="challenge-stat-row">
-          <span id="challengeProgress">關卡：1 / 10</span>
+          <span id="currentQuestionNum">當前：第 1 題</span>
           <span id="challengeTimer">⏱️ 用時：0 秒</span>
         </div>
         <div class="challenge-stat-row">
+          <span id="completedProgressText" style="color:#4ade80;">完成進度：0 / 10 題</span>
           <span id="challengeScore">得分：⭐ 0</span>
         </div>
       </div>
@@ -693,7 +732,6 @@
         }
       ],
 
-      // 階段二：同圖不同底（重點鞏固）
       consolidate: [
         {
           id: 'tri_same_1',
@@ -742,7 +780,6 @@
         }
       ],
 
-      // 階段三：挑戰關卡（完整 10 題）
       challenge: [
         {
           id: 'ch_1',
@@ -802,7 +839,7 @@
           id: 'ch_7',
           type: 'trapezoid',
           name: '關卡 7：雙直角梯形 (垂直腰為底)',
-          desc: '以垂直的腰為底！看看上底與下底兩條水平線，高如何精準橫向跨越！',
+          desc: '以垂直的腰為底！看看上底與下底兩條水平線，高應連接到底與對應頂點！',
           vertices: [{x: 220, y: 100}, {x: 220, y: 280}, {x: 480, y: 280}, {x: 380, y: 100}],
           baseIndex: [0, 1],
           extMin: 0, extMax: 1
@@ -871,7 +908,9 @@
     const topSuccessBanner = document.getElementById('topSuccessBanner');
     const scanTag = document.getElementById('scanTag');
     const completionModal = document.getElementById('completionModal');
+    const completionTitle = document.getElementById('completionTitle');
     const completionStatsText = document.getElementById('completionStatsText');
+    const resumeUnfinishedBtn = document.getElementById('resumeUnfinishedBtn');
     const infoPanel = document.getElementById('infoPanel');
     const infoTitleIcon = document.getElementById('infoTitleIcon');
     const infoTitlePrefix = document.getElementById('infoTitlePrefix');
@@ -879,7 +918,8 @@
     const conceptDesc = document.getElementById('conceptDesc');
     const svgContainer = document.getElementById('svgContainer');
     const challengeStats = document.getElementById('challengeStats');
-    const challengeProgress = document.getElementById('challengeProgress');
+    const currentQuestionNum = document.getElementById('currentQuestionNum');
+    const completedProgressText = document.getElementById('completedProgressText');
     const challengeScore = document.getElementById('challengeScore');
     const challengeTimer = document.getElementById('challengeTimer');
     const nextChallengeBtn = document.getElementById('nextChallengeBtn');
@@ -917,6 +957,30 @@
     }
 
     /* ========================================================
+       點是否落在多邊形內部 (Ray-casting 點在多邊形演算法)
+    ======================================================== */
+    function isPointInPolygon(point, vs) {
+      const x = point.x, y = point.y;
+      let inside = false;
+      for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+        const xi = vs[i].x, yi = vs[i].y;
+        const xj = vs[j].x, yj = vs[j].y;
+        const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+      }
+      return inside;
+    }
+
+    /* 點到線段的距離 */
+    function distToSegment(p, v, w) {
+      const l2 = (v.x - w.x) * (v.x - w.x) + (v.y - w.y) * (v.y - w.y);
+      if (l2 === 0) return Math.hypot(p.x - v.x, p.y - v.y);
+      let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
+      t = Math.max(0, Math.min(1, t));
+      return Math.hypot(p.x - (v.x + t * (w.x - v.x)), p.y - (v.y + t * (w.y - v.y)));
+    }
+
+    /* ========================================================
        幾何高求解器
     ======================================================== */
     function solveShapeGeometry(data) {
@@ -950,22 +1014,32 @@
         ny = -ny;
       }
 
-      const oppTList = oppVertices.map(item => item.t);
-      const minOppT = Math.min(...oppTList);
-      const maxOppT = Math.max(...oppTList);
+      // 檢查對邊是否與底平行
+      let parallelOppEdge = null;
+      if (oppVertices.length >= 2) {
+        const vA = oppVertices[0].pt;
+        const vB = oppVertices[1].pt;
+        const odx = vB.x - vA.x;
+        const ody = vB.y - vA.y;
+        const oLen = Math.hypot(odx, ody);
+        const cross = Math.abs(dx * ody - dy * odx) / (baseLen * oLen);
+        if (cross < 0.05) {
+          // 是平行對邊
+          parallelOppEdge = { pA: vA, pB: vB };
+        }
+      }
 
       return {
         p1, p2, dx, dy, baseLen, ux, uy, nx, ny,
         targetHeight: maxDist,
         oppVertices,
-        minOppT,
-        maxOppT,
+        parallelOppEdge,
         isParallelShape: data.type === 'parallelogram' || data.type === 'trapezoid'
       };
     }
 
     /* ========================================================
-       視圖渲染與高精度判定 (嚴格收緊容差)
+       視圖渲染與高精度判定 (嚴格收緊容差 + 邊界檢查)
     ======================================================== */
     function updateScene() {
       const data = DATABASE[currentMode][currentSubIndex];
@@ -1030,32 +1104,37 @@
       const s3y = hy + geom.uy * sq;
       rightAngleMark.setAttribute('d', `M ${s1x} ${s1y} L ${s2x} ${s2y} L ${s3x} ${s3y}`);
 
-      // 嚴格判定：高差必須 <= 5px，必須真切觸碰頂點或對邊！
+      // ========================================================
+      // 核心判定邏輯修復：
+      // 高線長度必須高度符合 (<= 5px)，且必須落在對應頂點或平行對邊線段上！
+      // 絕不允許拉出圖形外部！
+      // ========================================================
       let isAligned = false;
       let matchedVertex = null;
       const hDiff = Math.abs(currentHeightLen - geom.targetHeight);
 
-      if (geom.isParallelShape) {
-        if (hDiff <= 5) {
-          for (const item of geom.oppVertices) {
-            if (Math.abs(currentT - item.t) < 0.04) {
-              matchedVertex = item.pt;
-              break;
-            }
-          }
-          const inBase = (currentT >= -0.04 && currentT <= 1.04);
-          const inOpp = (currentT >= geom.minOppT - 0.04 && currentT <= geom.maxOppT + 0.04);
-          if ((inBase && inOpp) || matchedVertex !== null) {
+      if (hDiff <= 5) {
+        // 1. 先檢驗是否對準圖形頂點
+        for (const item of geom.oppVertices) {
+          const distToTop = Math.hypot(topX - item.pt.x, topY - item.pt.y);
+          if (distToTop <= 10) {
+            matchedVertex = item.pt;
             isAligned = true;
+            break;
           }
         }
-      } else {
-        // 三角形：必須嚴格對齊頂點垂足 (tDiff < 0.035) 且高度嚴格到位 (hDiff <= 5)
-        const targetVertex = geom.oppVertices[0];
-        const tDiff = Math.abs(currentT - targetVertex.t);
-        if (tDiff <= 0.035 && hDiff <= 5) {
-          isAligned = true;
-          matchedVertex = targetVertex.pt;
+
+        // 2. 若為平行四邊形或梯形，檢查是否落在平行的對邊線段上
+        if (!isAligned && geom.parallelOppEdge) {
+          const edgeDist = distToSegment(
+            { x: topX, y: topY },
+            geom.parallelOppEdge.pA,
+            geom.parallelOppEdge.pB
+          );
+          // 端點必須落在平行對邊線段上 (8px 內)，不能穿出線段！
+          if (edgeDist <= 8) {
+            isAligned = true;
+          }
         }
       }
 
@@ -1066,7 +1145,8 @@
           hasLocked = true;
           if (currentMode === 'challenge' && !passedChallenges.has(currentSubIndex)) {
             passedChallenges.add(currentSubIndex);
-            challengeScoreVal += 100;
+            challengeScoreVal = passedChallenges.size * 100;
+            renderSubNav();
             updateChallengeHUD();
           }
         }
@@ -1098,7 +1178,7 @@
         let successFeedbackText = '';
         if (geom.isParallelShape) {
           if (matchedVertex) {
-            successFeedbackText = '太棒了！橙線與綠線互相垂直（90°），並精準對應到平行邊頂點！';
+            successFeedbackText = '太棒了！橙線與綠線互相垂直（90°），並精準對應到頂點！';
           } else {
             successFeedbackText = '太棒了！平行線之間的垂直距離處處相等，你成功找出了一條標準的內高！';
           }
@@ -1115,6 +1195,14 @@
 
         if (currentMode === 'challenge') {
           nextChallengeBtn.style.display = 'inline-flex';
+          const totalQ = DATABASE.challenge.length;
+          if (passedChallenges.size === totalQ) {
+            nextChallengeBtn.innerText = '🏆 查看全通關結算！';
+          } else if (currentSubIndex === totalQ - 1) {
+            nextChallengeBtn.innerText = '前往未完成題目 ➔';
+          } else {
+            nextChallengeBtn.innerText = '進入下一題 ➔';
+          }
         }
       } else {
         hasLocked = false;
@@ -1201,7 +1289,7 @@
         const pullDot = (pos.x - hx) * geom.nx + (pos.y - hy) * geom.ny;
         let h = Math.max(10, pullDot);
 
-        // 僅在極其接近 (4px 內) 才輕微磁吸，防止未達高點就誤吸
+        // 僅在極其接近 (4px 內) 才輕微磁吸
         if (Math.abs(h - geom.targetHeight) < 4) {
           h = geom.targetHeight;
         }
@@ -1254,8 +1342,15 @@
       subNav.innerHTML = '';
       list.forEach((item, index) => {
         const btn = document.createElement('button');
-        btn.className = `sub-btn ${index === currentSubIndex ? 'active' : ''}`;
-        btn.innerText = item.name;
+        const isPassed = currentMode === 'challenge' && passedChallenges.has(index);
+        btn.className = `sub-btn ${index === currentSubIndex ? 'active' : ''} ${isPassed ? 'passed' : ''}`;
+
+        let label = item.name;
+        if (isPassed) {
+          label = `✅ ` + label;
+        }
+        btn.innerText = label;
+
         btn.onclick = () => {
           currentSubIndex = index;
           completionModal.style.display = 'none';
@@ -1287,8 +1382,15 @@
       loadShape();
     }
 
+    function resumeNextUnfinished() {
+      completionModal.style.display = 'none';
+      findNextUnfinished();
+    }
+
     function updateChallengeHUD() {
-      challengeProgress.innerText = `關卡：${currentSubIndex + 1} / ${DATABASE.challenge.length}`;
+      const totalQ = DATABASE.challenge.length;
+      currentQuestionNum.innerText = `當前：第 ${currentSubIndex + 1} 題`;
+      completedProgressText.innerText = `完成進度：${passedChallenges.size} / ${totalQ} 題`;
       challengeScore.innerText = `得分：⭐ ${challengeScoreVal}`;
     }
 
@@ -1315,23 +1417,63 @@
       updateScene();
     }
 
+    function findNextUnfinished() {
+      const totalQ = DATABASE.challenge.length;
+      for (let i = 1; i <= totalQ; i++) {
+        const nextIdx = (currentSubIndex + i) % totalQ;
+        if (!passedChallenges.has(nextIdx)) {
+          currentSubIndex = nextIdx;
+          renderSubNav();
+          loadShape();
+          updateChallengeHUD();
+          return true;
+        }
+      }
+      return false;
+    }
+
     function nextChallenge() {
-      if (currentSubIndex < DATABASE.challenge.length - 1) {
-        currentSubIndex++;
-        renderSubNav();
-        loadShape();
-        updateChallengeHUD();
-      } else {
-        // 完成第 10 關：顯示自訂結算浮層與「重新開始挑戰」按鈕
-        clearInterval(challengeTimerInterval);
-        const totalSec = Math.floor((Date.now() - challengeStartTime) / 1000);
+      const totalQ = DATABASE.challenge.length;
+
+      if (passedChallenges.size === totalQ) {
+        showFinalVictoryModal();
+        return;
+      }
+
+      if (findNextUnfinished()) {
+        return;
+      }
+
+      showFinalVictoryModal();
+    }
+
+    function showFinalVictoryModal() {
+      clearInterval(challengeTimerInterval);
+      const totalSec = Math.floor((Date.now() - challengeStartTime) / 1000);
+      const totalQ = DATABASE.challenge.length;
+      const count = passedChallenges.size;
+
+      if (count === totalQ) {
+        completionTitle.innerText = '🏆 滿分大獲全勝！';
         completionStatsText.innerHTML = `
-          恭喜你成功突破全部 10 道難關！<br>
+          太厲害了！你真真切切突破了全部 10 道難關！<br>
+          已完成題目：<strong style="color:#4ade80;">10 / 10 題</strong><br>
           總得分：<strong style="color:#facc15; font-size:1.15rem;">⭐ ${challengeScoreVal} 分</strong><br>
           總用時：<strong style="color:#38bdf8;">⏱️ ${totalSec} 秒</strong>
         `;
-        completionModal.style.display = 'flex';
+        resumeUnfinishedBtn.style.display = 'none';
+      } else {
+        completionTitle.innerText = '🌟 挑戰進度結算';
+        completionStatsText.innerHTML = `
+          你目前完成了：<strong style="color:#facc15;">${count} / ${totalQ} 題</strong><br>
+          目前得分：<strong style="color:#facc15;">⭐ ${challengeScoreVal} 分</strong><br>
+          目前用時：<strong style="color:#38bdf8;">⏱️ ${totalSec} 秒</strong><br>
+          <span style="font-size:0.84rem; color:#94a3b8;">還有 ${totalQ - count} 道題目尚未完成挑戰喔！</span>
+        `;
+        resumeUnfinishedBtn.style.display = 'inline-block';
       }
+
+      completionModal.style.display = 'flex';
     }
 
     renderSubNav();
@@ -1339,5 +1481,3 @@
   </script>
 </body>
 </html>
-
-
